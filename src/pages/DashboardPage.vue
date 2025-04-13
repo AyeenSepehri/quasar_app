@@ -5,7 +5,11 @@
       label="افزودن خودرو"
       icon="add"
       class="q-mb-md"
-      @click="showAddDialog = true"
+      @click="() => {
+        showAddDialog = true
+        isEdit = false
+        selectedCar = null
+      }"
     />
 
     <q-table
@@ -13,51 +17,38 @@
       :rows="cars"
       :columns="columns"
       row-key="id"
-      flat bordered
+      flat
+      bordered
     >
       <template v-slot:body-cell-status="text">
         <q-td class="text-center">
-          <span :class="text.row.status === 'روشن' ? 'text-green' : 'text-red'">{{text.row.status}}</span>
+          <span :class="text.row.status === 'روشن' ? 'text-green' : 'text-red'">{{ text.row.status }}</span>
         </q-td>
       </template>
+
       <template v-slot:body-cell-actions="props">
         <q-td align="center">
           <q-btn
             color="primary"
             label="جزئیات"
             size="sm"
-            @click="showDetails(props.row)"
+            @click="() => {
+              showAddDialog = true
+              isEdit = true
+              showDetails(props.row)
+            }"
           />
         </q-td>
       </template>
     </q-table>
 
-    <q-dialog v-model="showDialog">
-      <q-card style="min-width: 300px">
-        <q-card-section class="q-pa-md">
-          <div class="text-h6">جزئیات خودرو</div>
-        </q-card-section>
-
-        <q-card-section>
-          <div>پلاک: {{ selectedCar?.plate }}</div>
-          <div>مدل: {{ selectedCar?.model }}</div>
-          <div>وضعیت: {{ selectedCar?.status }}</div>
-          <div>مکان: {{ selectedCar?.location }}</div>
-          <div>آخرین بروزرسانی: {{ selectedCar?.lastUpdate }}</div>
-        </q-card-section>
-
-        <q-card-actions align="right">
-          <q-btn flat label="بستن" color="primary" v-close-popup />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-
     <AddCarDialog
       v-model="showAddDialog"
       @add="addCar"
+      @update="updateCar"
+      :isEditMode="isEdit"
+      :initialValue="isEdit && selectedCar ? selectedCar : null"
     />
-
-
   </q-page>
 </template>
 
@@ -66,8 +57,9 @@ import { ref } from 'vue'
 import AddCarDialog from 'components/modals/AddCarDialog.vue'
 
 const showAddDialog = ref(false)
-const showDialog = ref(false)
+const isEdit = ref(false)
 const selectedCar = ref(null)
+
 const cars = ref([
   {
     id: 1,
@@ -91,9 +83,15 @@ function addCar(newCar) {
   cars.value.push(newCar)
 }
 
+function updateCar(updatedCar) {
+  const index = cars.value.findIndex(c => c.id === updatedCar.id)
+  if (index !== -1) {
+    cars.value[index] = updatedCar
+  }
+}
+
 function showDetails(row) {
-  selectedCar.value = row
-  showDialog.value = true
+  selectedCar.value = { ...row } // کپی مستقل برای ویرایش امن
 }
 
 const columns = [
@@ -104,5 +102,4 @@ const columns = [
   { name: 'lastUpdate', label: 'آخرین بروزرسانی', field: 'lastUpdate', align: 'center' },
   { name: 'actions', label: 'عملیات', align: 'center' }
 ]
-
 </script>

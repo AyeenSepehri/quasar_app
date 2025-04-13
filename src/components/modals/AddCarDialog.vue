@@ -2,7 +2,8 @@
   <q-dialog v-model="internalModelValue" persistent>
     <q-card style="min-width: 400px">
       <q-card-section>
-        <div class="text-h6">افزودن خودرو جدید</div>
+        <div v-if="isEditMode" class="text-h6">ویرایش خودرو</div>
+        <div v-else class="text-h6">افزودن خودرو جدید</div>
       </q-card-section>
 
       <q-card-section class="q-gutter-md">
@@ -35,21 +36,28 @@
 
       <q-card-actions align="right">
         <q-btn flat label="انصراف" color="grey" @click="cancel" />
-        <q-btn flat label="افزودن" color="primary" @click="submit" />
+        <q-btn
+          flat
+          :label="isEditMode ? 'ذخیره تغییرات' : 'افزودن'"
+          color="primary"
+          @click="submit"
+        />
       </q-card-actions>
     </q-card>
   </q-dialog>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watchEffect } from 'vue'
 import { useQuasar } from 'quasar'
 
 const props = defineProps({
-  modelValue: Boolean
+  modelValue: Boolean,
+  isEditMode: Boolean,
+  initialValue: Object
 })
 
-const emit = defineEmits(['update:modelValue', 'add'])
+const emit = defineEmits(['update:modelValue', 'add', 'update'])
 
 const $q = useQuasar()
 
@@ -59,6 +67,22 @@ const form = ref({
   status: '',
   location: ''
 })
+
+watchEffect(() => {
+  if (props.modelValue) {
+    if (props.isEditMode && props.initialValue) {
+      form.value = {
+        plate: props.initialValue.plate || '',
+        model: props.initialValue.model || '',
+        status: props.initialValue.status || '',
+        location: props.initialValue.location || ''
+      }
+    } else {
+      reset()  // در حالت افزودن فرم ریست شود
+    }
+  }
+})
+
 
 const errors = ref({
   plate: '',
@@ -82,25 +106,21 @@ function validateForm() {
 
   let isValid = true
 
-  // پلاک: حداقل ۵ حرف
   if (!form.value.plate || form.value.plate.length < 5) {
     errors.value.plate = 'پلاک باید حداقل ۵ کاراکتر باشد.'
     isValid = false
   }
 
-  // مدل: اجباری
   if (!form.value.model) {
     errors.value.model = 'مدل خودرو الزامی است.'
     isValid = false
   }
 
-  // وضعیت: اجباری
   if (!form.value.status) {
     errors.value.status = 'لطفاً وضعیت را انتخاب کنید.'
     isValid = false
   }
 
-  // مکان: اجباری
   if (!form.value.location) {
     errors.value.location = 'مکان را وارد کنید.'
     isValid = false
@@ -111,24 +131,34 @@ function validateForm() {
 
 function submit() {
   if (validateForm()) {
-    const newCar = {
-      id: Date.now(),
+    const car = {
       ...form.value,
+      id: props.isEditMode ? props.initialValue.id : Date.now(),
       lastUpdate: new Date().toLocaleString('fa-IR')
     }
-    emit('add', newCar)
+
+    if (props.isEditMode) {
+      emit('update', car)
+      $q.notify({
+        type: 'positive',
+        message: 'تغییرات خودرو ذخیره شد.'
+      })
+    } else {
+      emit('add', car)
+      $q.notify({
+        type: 'positive',
+        message: 'خودرو با موفقیت اضافه شد.'
+      })
+    }
+
     emit('update:modelValue', false)
-    $q.notify({
-      type: 'positive',
-      message: 'خودرو با موفقیت اضافه شد'
-    })
-    reset()
+    if (!props.isEditMode) reset()
   }
 }
 
 function cancel() {
   emit('update:modelValue', false)
-  reset()
+  if (!props.isEditMode) reset()
 }
 
 function reset() {
