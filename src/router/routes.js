@@ -10,13 +10,14 @@ const routes = [
       {
         path: 'dashboard',
         component: () => import('pages/DashboardPage.vue')
+      },
+      {
+        path: 'map', // مسیر جدید
+        component: () => import('pages/MapPage.vue') // صفحه جدید
       }
     ]
   },
 
-
-  // Always leave this as last one,
-  // but you can also remove it
   {
     path: '/:catchAll(.*)*',
     component: () => import('pages/ErrorNotFound.vue')
